@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -21,30 +22,34 @@ sealed class Screen(val route: String, val icon: ImageVector, val title: String)
     object Schedule : Screen("schedule", Icons.Default.Home, "Schedule")
     object History : Screen("history", Icons.Default.List, "History")
     object Profile : Screen("profile", Icons.Default.Person, "Profile")
+    object NewSchedule : Screen("new_schedule", Icons.Default.Home, "New Schedule")
 }
 
 @Composable
-fun HomeScreen() {
-    val navController = rememberNavController()
+fun HomeScreen(navController: NavController) {
+    val innerNavController = rememberNavController()
+
     val screens = listOf(
         Screen.Schedule,
         Screen.History,
-        Screen.Profile
+        Screen.Profile,
+        Screen.NewSchedule
     )
 
     Scaffold(
         bottomBar = {
             NavigationBar {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
+
                 screens.forEach { screen ->
                     NavigationBarItem(
                         icon = { Icon(screen.icon, contentDescription = null) },
                         label = { Text(screen.title) },
                         selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
                         onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
+                            innerNavController.navigate(screen.route) {
+                                popUpTo(innerNavController.graph.findStartDestination().id) {
                                     saveState = true
                                 }
                                 launchSingleTop = true
@@ -57,13 +62,14 @@ fun HomeScreen() {
         }
     ) { innerPadding ->
         NavHost(
-            navController,
+            navController = innerNavController,
             startDestination = Screen.Schedule.route,
             Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Schedule.route) { ScheduleScreen() }
+            composable(Screen.Schedule.route) { ScheduleScreen(navController = innerNavController) }
             composable(Screen.History.route) { HistoryScreen() }
-            composable(Screen.Profile.route) { ProfileScreen() }
+            composable(Screen.Profile.route) { ProfileScreen(rootNavController = navController) }
+            composable(Screen.NewSchedule.route) { NewScheduleScreen(navController = innerNavController) }
         }
     }
 }
@@ -74,6 +80,6 @@ fun HistoryScreen() {
 }
 
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(rootNavController: NavController) {
     Text("Profile Screen")
 }

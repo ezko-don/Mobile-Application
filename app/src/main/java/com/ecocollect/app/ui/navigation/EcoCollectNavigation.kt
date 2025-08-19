@@ -24,10 +24,13 @@ fun EcoCollectNavigation(
             LoginScreen(navController, authViewModel)
         }
         composable("register") {
-            RegisterScreen(navController, authViewModel)
+            RegisterScreen(
+                onRegistrationSuccess = { navController.navigate("login") },
+                onNavigateToLogin = { navController.navigate("login") }
+            )
         }
         composable("home") {
-            // HomeScreen(navController)
+            HomeScreen(navController = navController)
         }
     }
 }
