@@ -16,6 +16,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.ecocollect.app.data.model.EWasteItems
 import com.ecocollect.app.ui.viewmodel.ScheduleViewModel
+import com.ecocollect.app.ui.viewmodel.ScheduleUiState
+import com.ecocollect.app.ui.components.ErrorDialog
+import com.ecocollect.app.ui.components.LoadingDialog
 
 @Composable
 fun NewScheduleScreen(navController: NavController, viewModel: ScheduleViewModel = hiltViewModel()) {
@@ -24,6 +27,8 @@ fun NewScheduleScreen(navController: NavController, viewModel: ScheduleViewModel
     var selectedItems by remember { mutableStateOf(setOf<String>()) }
     
     val isFormValid = address.isNotBlank() && selectedItems.isNotEmpty()
+    val uiState by viewModel.uiState.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
     Scaffold(
         topBar = {
@@ -133,6 +138,19 @@ fun NewScheduleScreen(navController: NavController, viewModel: ScheduleViewModel
                     )
                 }
             }
+        }
+
+        // Show loading dialog
+        if (uiState is ScheduleUiState.Loading) {
+            LoadingDialog()
+        }
+
+        // Show error dialog
+        errorMessage?.let { message ->
+            ErrorDialog(
+                message = message,
+                onDismiss = { viewModel.clearError() }
+            )
         }
     }
 }
