@@ -7,7 +7,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.ecocollect.app.ui.auth.LoginScreen
 import com.ecocollect.app.ui.auth.RegisterScreen
+import com.ecocollect.app.ui.screens.HistoryScreen
 import com.ecocollect.app.ui.viewmodel.AuthViewModel
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+
+sealed class Screen(val route: String) {
+    object Home : Screen("home")
+    object History : Screen("history")
+    // ...other screens...
+}
 
 @Composable
 fun EcoCollectNavigation(
@@ -17,7 +26,7 @@ fun EcoCollectNavigation(
 ) {
     NavHost(
         navController = navController,
-        startDestination = "login",
+        startDestination = Screen.Home.route,
         modifier = modifier
     ) {
         composable("login") {
@@ -29,8 +38,13 @@ fun EcoCollectNavigation(
                 onNavigateToLogin = { navController.navigate("login") }
             )
         }
-        composable("home") {
-            HomeScreen(navController = navController)
+        composable(Screen.Home.route) {
+            // HomeScreen content
+            Button(onClick = { navController.navigate(Screen.History.route) }) {
+                Text("View History")
+            }
         }
+        composable(Screen.History.route) { HistoryScreen() }
+        // ...other composables...
     }
 }
