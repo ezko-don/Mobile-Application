@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ecocollect.app.data.model.PickupSchedule
 import com.ecocollect.app.data.repository.ScheduleRepository
+import com.google.firebase.Timestamp
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +28,27 @@ class ScheduleViewModel @Inject constructor(
             scheduleRepository.getSchedules()
                 .onSuccess { fetchedSchedules ->
                     _schedules.value = fetchedSchedules
+                }
+                .onFailure {
+                    // TODO: Handle error
+                }
+        }
+    }
+
+    fun addSchedule(
+        address: String,
+        notes: String?,
+        items: List<String>
+    ) {
+        viewModelScope.launch {
+            val schedule = PickupSchedule(
+                address = address,
+                notes = notes,
+                items = items
+            )
+            scheduleRepository.addSchedule(schedule)
+                .onSuccess {
+                    loadSchedules()
                 }
                 .onFailure {
                     // TODO: Handle error
