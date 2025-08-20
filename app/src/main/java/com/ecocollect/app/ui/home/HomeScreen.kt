@@ -2,32 +2,64 @@ package com.ecocollect.app.ui.home
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.ecocollect.app.ui.viewmodel.ScheduleViewModel
+import kotlinx.coroutines.launch
 
-sealed class Screen(val route: String, val icon: ImageVector, val title: String) {
-    object Schedule : Screen("schedule", Icons.Default.Home, "Schedule")
-    object History : Screen("history", Icons.Default.List, "History")
-    object Profile : Screen("profile", Icons.Default.Person, "Profile")
-    object NewSchedule : Screen("new_schedule", Icons.Default.Home, "New Schedule")
+sealed class Screen(val route: String) {
+    object Schedule : Screen("schedule")
+    object History : Screen("history")
+    object Profile : Screen("profile")
+    object NewSchedule : Screen("new_schedule")
+    object ScheduleDetail : Screen("schedule_detail/{scheduleId}") {
+        fun createRoute(scheduleId: String) = "schedule_detail/$scheduleId"
+    }
+
+    val icon: ImageVector?
+        get() = when (this) {
+            is Schedule -> Icons.Default.Home
+            is History -> Icons.Default.History
+            is Profile -> Icons.Default.Person
+            else -> null
+        }
+
+    val title: String?
+        get() = when (this) {
+            is Schedule -> "Schedule"
+            is History -> "History"
+            is Profile -> "Profile"
+            else -> null
+        }
 }
 
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController, scheduleViewModel: ScheduleViewModel = hiltViewModel()) {
     val innerNavController = rememberNavController()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        scheduleViewModel.errorFlow.collect { message ->
+            scope.launch {
+                snackbarHostState.showSnackbar(message)
+            }
+        }
+    }
 
     val screens = listOf(
         Screen.Schedule,
@@ -37,26 +69,29 @@ fun HomeScreen(navController: NavController) {
     )
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             NavigationBar {
                 val navBackStackEntry by innerNavController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
 
                 screens.forEach { screen ->
-                    NavigationBarItem(
-                        icon = { Icon(screen.icon, contentDescription = null) },
-                        label = { Text(screen.title) },
-                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                        onClick = {
-                            innerNavController.navigate(screen.route) {
-                                popUpTo(innerNavController.graph.findStartDestination().id) {
-                                    saveState = true
+                    screen.icon?.let {
+                        NavigationBarItem(
+                            icon = { Icon(it, contentDescription = null) },
+                            label = { Text(screen.title!!) },
+                            selected = currentDestination?.hierarchy?.any { dest -> dest.route == screen.route } == true,
+                            onClick = {
+                                innerNavController.navigate(screen.route) {
+                                    popUpTo(innerNavController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -66,17 +101,19 @@ fun HomeScreen(navController: NavController) {
             startDestination = Screen.Schedule.route,
             Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Schedule.route) { ScheduleScreen(navController = innerNavController) }
-            composable(Screen.History.route) { HistoryScreen() }
+            composable(Screen.Schedule.route) { ScheduleScreen(viewModel = scheduleViewModel, navController = innerNavController) }
             composable(Screen.Profile.route) { ProfileScreen(rootNavController = navController) }
-            composable(Screen.NewSchedule.route) { NewScheduleScreen(navController = innerNavController) }
+            composable(Screen.NewSchedule.route) { NewScheduleScreen(navController = innerNavController, viewModel = scheduleViewModel) }
+            composable(
+                route = Screen.ScheduleDetail.route,
+                arguments = listOf(navArgument("scheduleId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val scheduleId = backStackEntry.arguments?.getString("scheduleId")
+                requireNotNull(scheduleId) { "scheduleId parameter wasn't found." }
+                ScheduleDetailScreen(scheduleId = scheduleId, viewModel = scheduleViewModel)
+            }
         }
     }
-}
-
-@Composable
-fun HistoryScreen() {
-    Text("History Screen")
 }
 
 @Composable

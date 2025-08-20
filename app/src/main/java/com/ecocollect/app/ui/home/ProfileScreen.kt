@@ -11,10 +11,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.ecocollect.app.ui.viewmodel.AuthViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
-fun ProfileScreen(rootNavController: NavController, authViewModel: AuthViewModel = hiltViewModel()) {
-    val currentUser = authViewModel.currentUser
+fun ProfileScreen(authViewModel: AuthViewModel = hiltViewModel(), rootNavController: NavController) {
+    val user = FirebaseAuth.getInstance().currentUser
 
     Column(
         modifier = Modifier
@@ -23,13 +24,17 @@ fun ProfileScreen(rootNavController: NavController, authViewModel: AuthViewModel
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Welcome!", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Logged in as: ${currentUser?.email}", style = MaterialTheme.typography.bodyLarge)
+        Text("Profile", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(32.dp))
+
+        user?.email?.let {
+            Text("Email: $it", style = MaterialTheme.typography.bodyLarge)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         Button(onClick = {
             authViewModel.signOut()
-            rootNavController.navigate("login") {
+            rootNavController.navigate("auth") {
                 popUpTo("home") { inclusive = true }
             }
         }) {
