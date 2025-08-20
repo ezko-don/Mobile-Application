@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -19,6 +20,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ecocollect.app.ui.viewmodel.ScheduleViewModel
+import com.ecocollect.app.ui.screens.QRScannerScreen
 import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String) {
@@ -26,6 +28,7 @@ sealed class Screen(val route: String) {
     object History : Screen("history")
     object Profile : Screen("profile")
     object NewSchedule : Screen("new_schedule")
+    object QRScanner : Screen("qr_scanner")
     object ScheduleDetail : Screen("schedule_detail/{scheduleId}") {
         fun createRoute(scheduleId: String) = "schedule_detail/$scheduleId"
     }
@@ -35,6 +38,7 @@ sealed class Screen(val route: String) {
             is Schedule -> Icons.Default.Home
             is History -> Icons.Default.History
             is Profile -> Icons.Default.Person
+            is QRScanner -> Icons.Default.QrCodeScanner
             else -> null
         }
 
@@ -43,6 +47,7 @@ sealed class Screen(val route: String) {
             is Schedule -> "Schedule"
             is History -> "History"
             is Profile -> "Profile"
+            is QRScanner -> "QR Scanner"
             else -> null
         }
 }
@@ -94,6 +99,15 @@ fun HomeScreen(navController: NavController, scheduleViewModel: ScheduleViewMode
                     }
                 }
             }
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    innerNavController.navigate(Screen.QRScanner.route)
+                }
+            ) {
+                Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan QR Code")
+            }
         }
     ) { innerPadding ->
         NavHost(
@@ -104,6 +118,18 @@ fun HomeScreen(navController: NavController, scheduleViewModel: ScheduleViewMode
             composable(Screen.Schedule.route) { ScheduleScreen(viewModel = scheduleViewModel, navController = innerNavController) }
             composable(Screen.Profile.route) { ProfileScreen(rootNavController = navController) }
             composable(Screen.NewSchedule.route) { NewScheduleScreen(navController = innerNavController, viewModel = scheduleViewModel) }
+            composable(Screen.QRScanner.route) {
+                QRScannerScreen(
+                    navController = innerNavController,
+                    onQRCodeScanned = { qrData ->
+                        // Handle QR code scanning result
+                        // For now, just show a snackbar
+                        scope.launch {
+                            snackbarHostState.showSnackbar("QR Code Scanned: $qrData")
+                        }
+                    }
+                )
+            }
             composable(
                 route = Screen.ScheduleDetail.route,
                 arguments = listOf(navArgument("scheduleId") { type = NavType.StringType })
